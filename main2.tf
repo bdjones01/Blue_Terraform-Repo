@@ -1,12 +1,13 @@
-/*
-Name: IaC Buildout for Terraform Associate Exam
-Description: AWS Infrastructure Buildout
-Contributors: Bryan and Gabe
-*/
-
 #Configure the AWS Provider
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-2"
+  default_tags {
+    tags = {
+      Environment = terraform.workspace
+      Owner       = "Acme"
+      Provisioned = "Terraform"
+    }
+  }
 }
 
 #Retrieve the list of AZs in the current AWS region
@@ -112,7 +113,7 @@ resource "aws_internet_gateway" "internet_gateway" {
 
 #Create EIP for NAT Gateway
 resource "aws_eip" "nat_gateway_eip" {
-  vpc        = true
+  domain     = vpc
   depends_on = [aws_internet_gateway.internet_gateway]
   tags = {
     Name = "demo_igw_eip"
@@ -173,5 +174,50 @@ resource "aws_subnet" "variables-subnet" {
   }
 }
 
-
- 
+resource "random_string" "random" {
+  length      = 12
+  special     = true
+  min_numeric = 6
+  min_special = 2
+  min_upper   = 3
+}
+# Terraform Resource Block - To Build Web Server in Public Subnet
+resource "aws_instance" "web_server2" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.public_subnets["public_subnet_1"].id
+  security_groups = [aws_security_group.vpc-ping.id,
+  aws_security_group.ingress-ssh.id, aws_security_group.vpc-web.id]
+  associate_public_ip_address = true
+  key_name                    = aws_key_pair.generated.key_name
+  connection {
+    user        = "ubuntu"
+    private_key = tls_private_key.generated.private_key_pem
+    host        = self.public_ip
+  }
+}
+resource "aws_instance" "aws_linux" {}
+  ami           = "ami-0df6ef5f152160524"
+  instance_type = "t2.micro"
+}
+module "autoscaling" {
+source = "terraform-aws-modules/autoscaling/aws"
+version = "4.9.0"
+# Autoscaling group
+name = "myasg"
+vpc_zone_identifier = [aws_subnet.private_subnets["private_subnet_1"].id
+,
+aws_subnet.private_subnets["private_subnet_2"].id,
+aws_subnet.private_subnets["private_subnet_3"].id]
+min_size = 0
+max_size = 1
+desired_capacity = 1
+# Launch template
+use_lt = true
+create_lt = true
+image_id = data.aws_ami.ubuntu.id
+instance_type = "t3.micro"
+tags_as_map = {
+Name = "Web EC2 Server 2"
+}
+}
