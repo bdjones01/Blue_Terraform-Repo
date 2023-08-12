@@ -1,13 +1,3 @@
-# Declare provider resources.
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 # Configure EC2 instance.
 resource "aws_instance" "jenkins_instance" {
   ami                    = "ami-0f34c5ae932e6f0e4"
