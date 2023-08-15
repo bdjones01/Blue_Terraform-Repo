@@ -294,15 +294,6 @@ resource "aws_instance" "web_server" {
       "sudo sh /tmp/assets/setup-web.sh",
     ]
   }
-
-  tags = {
-    Name = "Web EC2 Server"
-  }
-
-  lifecycle {
-    ignore_changes = [security_groups]
-  }
-
 }
 
 # Terraform Resource Block - To Build EC2 instance in Public Subnet
@@ -330,53 +321,4 @@ module "server_subnet_1" {
   private_key     = tls_private_key.generated.private_key_pem
   subnet_id       = aws_subnet.public_subnets["public_subnet_1"].id
   security_groups = [aws_security_group.vpc-ping.id, aws_security_group.ingress-ssh.id, aws_security_group.vpc-web.id]
-}
-
-output "public_ip" {
-  value = module.server.public_ip
-}
-
-output "public_dns" {
-  value = module.server.public_dns
-}
-
-output "size" {
-  value = module.server.size
-}
-output "public_ip_server_subnet_1" {
-  value = module.server_subnet_1.public_ip
-}
-
-output "public_dns_server_subnet_1" {
-  value = module.server_subnet_1.public_dns
-}
-
-module "autoscaling" {
-  source  = "terraform-aws-modules/autoscaling/aws"
-  version = "4.0.0"
-
-  # Autoscaling group
-  name = "myasg"
-
-  vpc_zone_identifier = [aws_subnet.private_subnets["private_subnet_1"].id, aws_subnet.private_subnets["private_subnet_2"].id, aws_subnet.private_subnets["private_subnet_3"].id]
-  min_size            = 0
-  max_size            = 1
-  desired_capacity    = 1
-
-  # Launch template
-  use_lt    = true
-  create_lt = true
-
-  image_id      = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
-
-  tags_as_map = {
-    Name = "Web EC2 Server 2"
-  }
-module "s3-bucket" {
-source = "terraform-aws-modules/s3-bucket/aws"
-version = "3.11.0"
-}
-output "s3_bucket_name" {
-value = module.s3-bucket.s3_bucket_bucket_domain_name
 }
