@@ -9,12 +9,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-locals {
-  team        = "api_mgmt_dev"
-  application = "corp_api"
-  server_name = "ec2-${var.environment}-api-${var.variables_sub_az}"
-}
-
 #Retrieve the list of AZs in the current AWS region
 data "aws_availability_zones" "available" {}
 data "aws_region" "current" {}
@@ -300,15 +294,6 @@ resource "aws_instance" "web_server" {
       "sudo sh /tmp/assets/setup-web.sh",
     ]
   }
-  tags = {
-    Name  = local.server_name
-    Owner = local.team
-    App   = local.application
-  }
-
-  lifecycle {
-    ignore_changes = [security_groups]
-  }
 }
 
 # Terraform Resource Block - To Build EC2 instance in Public Subnet
@@ -324,7 +309,6 @@ resource "aws_instance" "web_server_2" {
 module "server" {
   source          = "./modules/server"
   ami             = data.aws_ami.ubuntu.id
-  size            = "t2.micro"
   subnet_id       = aws_subnet.public_subnets["public_subnet_3"].id
   security_groups = [aws_security_group.vpc-ping.id, aws_security_group.ingress-ssh.id, aws_security_group.vpc-web.id]
 }
@@ -337,24 +321,4 @@ module "server_subnet_1" {
   private_key     = tls_private_key.generated.private_key_pem
   subnet_id       = aws_subnet.public_subnets["public_subnet_1"].id
   security_groups = [aws_security_group.vpc-ping.id, aws_security_group.ingress-ssh.id, aws_security_group.vpc-web.id]
-}
-
-output "public_ip" {
-  value = module.server.public_ip
-}
-
-output "public_dns" {
-  value = module.server.public_dns
-}
-
-output "size" {
-  value = module.server.size
-}
-
-output "public_ip_server_subnet_1" {
-  value = module.server_subnet_1.public_ip
-}
-
-output "public_dns_server_subnet_1" {
-  value = module.server_subnet_1.public_dns
 }
